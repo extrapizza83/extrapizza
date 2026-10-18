@@ -4,6 +4,13 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>Extra Pizza – Commander</title>
+<link rel="apple-touch-icon" href="icon.png">
+<link rel="icon" type="image/png" href="icon.png">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="Extra Pizza">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="theme-color" content="#1d2024">
 <link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:wght@400;600;800&display=swap" rel="stylesheet">
 <style>
 :root{--bg:#1d2024;--panel:#272b31;--line:#3a4048;--text:#f2eee6;--muted:#a9adb3;--red:#d9382c;--green:#2e9d45;--green2:#5ec26a;color-scheme:dark;
@@ -43,6 +50,8 @@ main{padding:8px 16px 120px;max-width:640px;margin:0 auto}
 .ph.w{width:100%;height:auto;aspect-ratio:1.85;margin:0;object-fit:cover}
 .cd{color:#777;font-weight:400;font-size:14px}
 .banner{display:block;width:100%;height:150px;object-fit:cover;border-radius:14px;margin:12px 0 4px}
+.hint{display:flex;gap:10px;align-items:center;justify-content:space-between;margin:0 16px 10px;padding:10px 12px;border:1px solid var(--green);border-radius:12px;background:rgba(46,157,69,.15);font-size:14px;line-height:1.35}
+.hint button{flex:none;padding:8px 14px;border:0;border-radius:10px;background:var(--green);color:#fff;font-weight:700}
 .closed{padding:12px 14px;border:1px solid var(--red);border-radius:12px;background:rgba(217,56,44,.15);font-size:15px;line-height:1.4}
 .opts button:disabled,.cp:disabled:not(.off){opacity:.45;cursor:not-allowed}
 .ph{display:block;height:110px;width:auto;max-width:100%;margin:14px auto 0;object-fit:contain}
@@ -91,6 +100,7 @@ input,select{width:100%;padding:13px 12px;border-radius:10px;border:1px solid va
   <header>
     <div class="top"><h1>Extra Pizza</h1><small id="wait"></small></div>
     <nav id="tabs" aria-label="Catégories"></nav>
+    <div id="a2hs" class="hint hidden"><span id="a2hsTxt"></span><button id="a2hsOk" type="button">OK</button></div>
     <div id="closedBar" class="closed hidden" style="margin:0 16px 10px">Fermé · Commandes du mardi au dimanche, de 18h à 22h</div>
   </header>
   <main id="list"></main>
@@ -273,6 +283,15 @@ $("copy").onclick=function(){var t=$("msg");t.select();try{navigator.clipboard.w
 $("share").onclick=function(){var t=$("msg").value;if(navigator.share){navigator.share({text:t}).catch(function(){})}else{$("copy").click()}};
 $("wait").textContent=WAIT;
 renderTabs();
+(function(){
+  var standalone=(window.matchMedia&&matchMedia("(display-mode: standalone)").matches)||window.navigator.standalone;
+  var seen=false;try{seen=localStorage.getItem("a2hs")==="1"}catch(e){}
+  if(standalone||seen)return;
+  var ios=/iphone|ipad|ipod/i.test(navigator.userAgent);
+  $("a2hsTxt").textContent=ios?"Ajoutez l’app à votre écran d’accueil : touchez Partager (carré avec une flèche), puis « Sur l’écran d’accueil ».":"Ajoutez l’app à votre écran d’accueil : touchez le menu ⋮ du navigateur, puis « Ajouter à l’écran d’accueil ».";
+  $("a2hs").classList.remove("hidden");
+  $("a2hsOk").onclick=function(){$("a2hs").classList.add("hidden");try{localStorage.setItem("a2hs","1")}catch(e){}};
+})();
 function updateOpen(){OPEN=isOpen();
   $("closedNote").classList.toggle("hidden",OPEN);$("closedBar").classList.toggle("hidden",OPEN);
   $("goTxt").textContent=OPEN?"Commander":"Voir la carte";
