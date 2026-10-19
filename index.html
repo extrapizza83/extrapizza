@@ -18,7 +18,7 @@
 *,*::before,*::after{box-sizing:inherit}
 html,body{margin:0;background:var(--bg);color:var(--text);font-family:"Bricolage Grotesque",system-ui,-apple-system,"Segoe UI",sans-serif;-webkit-text-size-adjust:100%}
 button{font:inherit;color:inherit;cursor:pointer}
-button:focus-visible,input:focus-visible,select:focus-visible{outline:3px solid var(--green2);outline-offset:2px}
+button:focus-visible,input:focus-visible,select:focus-visible,textarea:focus-visible{outline:3px solid var(--green2);outline-offset:2px}
 .hidden{display:none!important}
 /* accueil */
 #splash{min-height:100vh;display:flex;flex-direction:column;align-items:center;justify-content:space-between;padding:8vh 24px 32px;text-align:center;
@@ -75,7 +75,7 @@ main{padding:8px 16px 120px;max-width:640px;margin:0 auto}
 .qty button{width:40px;height:40px;border-radius:50%;border:1px solid var(--line);background:var(--panel);font-size:20px}
 .tot{display:flex;justify-content:space-between;font-size:20px;font-weight:800;padding:14px 0}
 label{display:block;margin:14px 0 6px;font-weight:600;font-size:15px}
-input,select{width:100%;padding:13px 12px;border-radius:10px;border:1px solid var(--line);background:var(--panel);color:var(--text);font:inherit;font-size:16px}
+input,select,textarea{width:100%;padding:13px 12px;border-radius:10px;border:1px solid var(--line);background:var(--panel);color:var(--text);font:inherit;font-size:16px}
 .seg{display:flex;gap:8px}
 .seg button{flex:1;min-height:44px;border-radius:10px;border:1px solid var(--line);background:none;font-weight:600}
 .seg button[aria-pressed=true]{background:var(--red);border-color:var(--red)}
@@ -124,10 +124,13 @@ input,select{width:100%;padding:13px 12px;border-radius:10px;border:1px solid va
     <label for="name">Nom</label><input id="name" autocomplete="name">
     <label for="tel">Téléphone</label><input id="tel" type="tel" autocomplete="tel">
     <div id="addrBox"><label for="addr">Adresse de livraison</label><input id="addr" autocomplete="street-address"></div>
+    <label for="when">Heure souhaitée</label><select id="when"></select>
     <label for="pay">Paiement</label>
     <select id="pay"><option>Espèces</option><option>Carte bancaire à la livraison / au retrait</option></select>
 
+    <label for="note">Remarque (facultatif)</label><textarea id="note" rows="3" maxlength="300" placeholder="Ex. : sans oignons, sonner 2 fois…"></textarea>
     <div class="err" id="err" role="alert"></div>
+    <p class="note">Extra Pizza vous répond sur WhatsApp pour confirmer l’heure. En cas de retard, ou si c’est prêt plus tôt, on vous prévient.</p>
     <button class="send" id="send">Envoyer ma commande par WhatsApp</button>
     <div id="fb" class="hidden"><p class="note">Si WhatsApp ne s'ouvre pas tout seul, utilisez un de ces boutons. Numéro du snack : <b>06 46 24 09 61</b></p><a class="send" id="wa" target="_blank" rel="noopener" style="display:block;text-align:center;text-decoration:none;color:#fff">Ouvrir WhatsApp</a><textarea id="msg" rows="9" readonly style="width:100%;padding:12px;border-radius:10px;border:1px solid var(--line);background:var(--panel);color:var(--text);font:inherit;font-size:15px"></textarea><button class="send" id="copy" type="button" style="margin-top:10px;background:var(--red)">Copier le message</button><button class="send" id="share" type="button" style="margin-top:10px;background:var(--panel);border:1px solid var(--line)">Partager le message</button></div>
   </div>
@@ -229,11 +232,22 @@ function entries(){
 function totals(){var q=0,t=0;entries().forEach(function(e){q+=e.q;t+=e.q*e.price});return {q:q,t:t}}
 function pizzaCount(){var n=0;entries().forEach(function(e){if((MENU[0].items.indexOf(e.it)>-1||MENU[1].items.indexOf(e.it)>-1))n+=e.q});return n}
 function freeCount(){return(offerDay()&&mode==="À emporter"&&pizzaCount()>=2)?1:0}
-function parisParts(){try{var o={};new Intl.DateTimeFormat("en-US",{timeZone:"Europe/Paris",weekday:"short",hour:"numeric",minute:"numeric",hourCycle:"h23"}).formatToParts(new Date()).forEach(function(x){o[x.type]=x.value});return o}catch(e){return null}}
+function parisParts(){try{var o={};new Intl.DateTimeFormat("en-US",{timeZone:"Europe/Paris",weekday:"short",day:"2-digit",hour:"numeric",minute:"numeric",hourCycle:"h23"}).formatToParts(new Date()).forEach(function(x){o[x.type]=x.value});return o}catch(e){return null}}
 function offerDay(){var p=parisParts();if(!p){var d=new Date().getDay();return d>=2&&d<=4}return p.weekday==="Tue"||p.weekday==="Wed"||p.weekday==="Thu"}
 // Ouvert du mardi au dimanche, 18h-22h (heure de Paris). Pour tester hors horaires : ajouter ?test=extra83 au lien.
 function isOpen(){if(location.search.indexOf("test=extra83")>-1)return true;var p=parisParts();if(!p)return true;var m=(+p.hour)*60+(+p.minute);return p.weekday!=="Mon"&&m>=1080&&m<1320}
 var OPEN=true;
+function pad2(x){return("0"+x).slice(-2)}
+function orderNo(){var p=parisParts(),r=Math.floor(Math.random()*10);
+  if(p)return pad2(p.day)+"-"+pad2(p.hour)+pad2(p.minute)+"-"+r;
+  var d=new Date();return pad2(d.getDate())+"-"+pad2(d.getHours())+pad2(d.getMinutes())+"-"+r}
+function fillWhen(){
+  var sel=$("when"),prev=sel.value,p=parisParts(),d=new Date();
+  var now=p?(+p.hour)*60+(+p.minute):d.getHours()*60+d.getMinutes();
+  var start=Math.max(1080,Math.ceil((now+20)/15)*15),h='<option value="">Dès que possible</option>';
+  for(var t=start;t<=1320;t+=15){var l=Math.floor(t/60)+"h"+pad2(t%60);h+='<option value="'+l+'">'+l+'</option>'}
+  sel.innerHTML=h;
+  if(prev&&sel.querySelector('option[value="'+prev+'"]'))sel.value=prev}
 function change(k,d){if(d>0&&!OPEN)return;cart[k]=Math.max(0,(cart[k]||0)+d);refresh()}
 function refresh(){
   renderList();var t=totals();
@@ -254,11 +268,14 @@ function renderSheet(){
   $("total").textContent=eur(totals().t);
   $("modeSeg").querySelectorAll("button").forEach(function(x){x.setAttribute("aria-pressed",x.dataset.m===mode)});
   var liv=mode==="Livraison";
+  var tt=totals().t;
+  if(liv&&tt>0&&tt<15){$("err").textContent="Livraison à partir de 15 € : il manque "+eur(15-tt)+". Ajoutez un article ou choisissez « À emporter ».";}
+  else if($("err").textContent.indexOf("Livraison à partir")===0){$("err").textContent=""}
   $("addrBox").classList.toggle("hidden",!liv);
-  $("modeNote").textContent=liv?"Livraison gratuite dès 15 € au Luc et au Cannet des Maures."+(offerDay()?" L'offre Marguerite est valable à emporter uniquement.":""):(offerDay()?"Offre à emporter : 2 pizzas achetées = 1 Marguerite offerte.":"");
+  $("modeNote").textContent=liv?"Livraison gratuite dès 15 € (minimum de commande 15 €) au Luc et au Cannet des Maures."+(offerDay()?" L'offre Marguerite est valable à emporter uniquement.":""):(offerDay()?"Offre à emporter : 2 pizzas achetées = 1 Marguerite offerte.":"");
 }
 $("go").onclick=function(){$("splash").classList.add("hidden");$("app").classList.remove("hidden");window.scrollTo(0,0)};
-$("openCart").onclick=function(){$("sheet").classList.remove("hidden");renderSheet()};
+$("openCart").onclick=function(){fillWhen();$("sheet").classList.remove("hidden");renderSheet()};
 $("close").onclick=function(){$("sheet").classList.add("hidden")};
 $("modeSeg").querySelectorAll("button").forEach(function(b){b.onclick=function(){
   mode=b.dataset.m;$("modeSeg").querySelectorAll("button").forEach(function(x){x.setAttribute("aria-pressed",x===b)});renderSheet()}});
@@ -267,13 +284,14 @@ $("send").onclick=function(){
   if(!isOpen()){$("err").textContent="Nous sommes fermés pour le moment. Commandes du mardi au dimanche, de 18h à 22h.";return}
   var es=entries(),t=totals().t,name=$("name").value.trim(),tel=$("tel").value.trim(),addr=$("addr").value.trim();
   if(!es.length){$("err").textContent="Ajoutez au moins un plat à votre commande.";return}
+  if(mode==="Livraison"&&t<15){$("err").textContent="Livraison à partir de 15 € : il manque "+eur(15-t)+". Ajoutez un article ou choisissez « À emporter ».";return}
   if(!name||!tel){$("err").textContent="Indiquez votre nom et votre numéro de téléphone.";return}
   if(mode==="Livraison"&&!addr){$("err").textContent="Indiquez votre adresse de livraison.";return}
   $("err").textContent="";
-  var m="Nouvelle commande Extra Pizza\n\n";
+  var m="Nouvelle commande Extra Pizza N° "+orderNo()+"\n\n";
   es.forEach(function(e){m+="• "+e.q+"× "+e.it.n+(e.s?" ("+e.s+")":"")+" – "+eur(e.q*e.price)+"\n"});
   if(freeCount())m+="• "+freeCount()+"× Marguerite offerte – 0,00 €\n";
-  m+="\nTotal : "+eur(t)+"\n"+mode+(mode==="Livraison"?" : "+addr:"")+"\nPaiement : "+$("pay").value+"\nNom : "+name+"\nTél : "+tel;
+  m+="\nTotal : "+eur(t)+"\n"+mode+(mode==="Livraison"?" : "+addr:"")+"\nHeure souhaitée : "+($("when").value||"dès que possible")+"\nPaiement : "+$("pay").value+"\nNom : "+name+"\nTél : "+tel+($("note").value.trim()?"\nRemarque : "+$("note").value.trim():"");
   var url=(WA_NUMBER?"https://wa.me/"+WA_NUMBER:"https://api.whatsapp.com/send")+"?text="+encodeURIComponent(m);
   $("msg").value=m;$("fb").classList.remove("hidden");$("copy").textContent="Copier le message";$("wa").href=url;$("fb").scrollIntoView();
   var w=null;try{w=window.open(url,"_blank")}catch(e){}
