@@ -124,6 +124,7 @@ input,select,textarea{width:100%;padding:13px 12px;border-radius:10px;border:1px
     <label for="name">Nom</label><input id="name" autocomplete="name">
     <label for="tel">Téléphone</label><input id="tel" type="tel" autocomplete="tel">
     <div id="addrBox"><label for="addr">Adresse de livraison</label><input id="addr" autocomplete="street-address"></div>
+    <button type="button" class="back" id="forget" style="display:none">Effacer mes infos enregistrées</button>
     <label for="when">Heure souhaitée</label><select id="when"></select>
     <label for="pay">Paiement</label>
     <select id="pay"><option>Espèces</option><option>Carte bancaire à la livraison / au retrait</option></select>
@@ -288,6 +289,7 @@ $("send").onclick=function(){
   if(!name||!tel){$("err").textContent="Indiquez votre nom et votre numéro de téléphone.";return}
   if(mode==="Livraison"&&!addr){$("err").textContent="Indiquez votre adresse de livraison.";return}
   $("err").textContent="";
+  saveInfo(name,tel,addr);
   var m="Nouvelle commande Extra Pizza N° "+orderNo()+"\n\n";
   es.forEach(function(e){m+="• "+e.q+"× "+e.it.n+(e.s?" ("+e.s+")":"")+" – "+eur(e.q*e.price)+"\n"});
   if(freeCount())m+="• "+freeCount()+"× Marguerite offerte – 0,00 €\n";
@@ -299,6 +301,11 @@ $("send").onclick=function(){
 };
 $("copy").onclick=function(){var t=$("msg");t.select();try{navigator.clipboard.writeText(t.value)}catch(e){}try{document.execCommand("copy")}catch(e){}$("copy").textContent="Message copié ✓"};
 $("share").onclick=function(){var t=$("msg").value;if(navigator.share){navigator.share({text:t}).catch(function(){})}else{$("copy").click()}};
+// Mémoire du client : nom, téléphone, adresse gardés uniquement sur son téléphone
+function saveInfo(n,t,a){try{var o={n:n,t:t};if(a)o.a=a;else{var old=JSON.parse(localStorage.getItem("ep_client")||"{}");if(old.a)o.a=old.a}localStorage.setItem("ep_client",JSON.stringify(o));$("forget").style.display="block"}catch(e){}}
+function loadInfo(){try{var o=JSON.parse(localStorage.getItem("ep_client")||"null");if(!o)return;if(o.n)$("name").value=o.n;if(o.t)$("tel").value=o.t;if(o.a)$("addr").value=o.a;$("forget").style.display="block"}catch(e){}}
+$("forget").onclick=function(){try{localStorage.removeItem("ep_client")}catch(e){}$("name").value="";$("tel").value="";$("addr").value="";$("forget").style.display="none"};
+loadInfo();
 $("wait").textContent=WAIT;
 renderTabs();
 (function(){
